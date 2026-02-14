@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>TickDB Demo #2 - Ticker + KLine Panel</title>
+  <link rel="stylesheet" href="./style.css"/>
+</head>
+<body>
+  <!-- 顶部栏 -->
+  <header class="top-bar">
+    <div class="container">
+      <h1>TickDB Demo #2：行情列表 + K 线详情</h1>
+      <div class="top-links">
+        <a href="https://docs.tickdb.ai" target="_blank">📖 Docs</a>
+        <a href="https://github.com/tickdb" target="_blank">💻 GitHub</a>
+        <a href="https://tickdb.ai/#/activity/spring-festival?utm_source=demo&utm_medium=ticker_panel&utm_campaign=demo1" target="_blank" class="btn-primary">获取 API Key</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- 提示条 -->
+  <div class="notice-bar">
+    💡 点击任意行情行，查看 K 线详情（左侧列表 + 右侧 K 线图）
+  </div>
+
+  <!-- 控制区 -->
+  <div class="controls">
+    <div class="container">
+      <div class="control-row">
+        <!-- 市场筛选 -->
+        <div class="control-group">
+          <label>市场：</label>
+          <select id="marketFilter">
+            <option value="ALL">全部</option>
+            <option value="FOREX">外汇</option>
+            <option value="METALS">贵金属</option>
+            <option value="US">美股</option>
+            <option value="HK">港股</option>
+            <option value="CN">A股</option>
+            <option value="CRYPTO">加密货币</option>
+          </select>
+        </div>
+
+        <!-- 自选管理 -->
+        <div class="control-group">
+          <button id="btnManageWatchlist" class="btn-secondary">📋 管理自选</button>
+        </div>
+
+        <!-- 搜索 -->
+        <div class="control-group">
+          <input type="text" id="searchInput" placeholder="搜索代码..." />
+        </div>
+
+        <!-- 刷新策略 -->
+        <div class="control-group">
+          <label>
+            <input type="checkbox" id="autoRefresh" checked />
+            自动刷新
+          </label>
+          <select id="refreshInterval">
+            <option value="3">3秒</option>
+            <option value="5" selected>5秒</option>
+            <option value="10">10秒</option>
+          </select>
+          <button id="btnManualRefresh" class="btn-secondary">🔄 手动刷新</button>
+        </div>
+
+        <!-- 状态 -->
+        <div class="control-group status-info">
+          <span id="lastUpdate">上次更新: --</span>
+          <span id="latency">延迟: --</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 主内容区：左右布局 -->
+  <div class="main-content" id="mainContent">
+    <div class="container-fluid">
+      <!-- 左侧：行情列表 -->
+      <div class="ticker-master" id="tickerMaster">
+        <!-- 收起按钮（紧贴右边） -->
+        <button class="btn-collapse-triangle" id="btnCollapseDetail" onclick="collapseDetail()" title="收起详情" style="display:none;">
+          <span>◀</span>
+        </button>
+        
+        <!-- 全宽表格 -->
+        <table id="tickerTable" class="ticker-table-full">
+          <thead>
+            <tr>
+              <th>产品代码</th>
+              <th>最新价</th>
+              <th>涨跌额</th>
+              <th>涨跌幅</th>
+              <th>24h 高</th>
+              <th>24h 低</th>
+              <th>24h 量</th>
+              <th>时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="tickerTableBody">
+            <!-- 由 JS 渲染 -->
+          </tbody>
+        </table>
+
+        <!-- 简化列表 -->
+        <div id="compactList" class="compact-list" style="display:none;">
+          <!-- 由 JS 渲染 -->
+        </div>
+      </div>
+
+      <!-- 右侧：K 线详情面板 -->
+      <div class="kline-detail-panel" id="klineDetailPanel" style="display:none;">
+        <!-- 行情快照 + 时间粒度选择 -->
+        <div class="ticker-snapshot" id="tickerSnapshot">
+          <!-- 由 JS 渲染，包含时间粒度下拉框 -->
+        </div>
+
+        <!-- K 线图表 -->
+        <div class="kline-chart-container">
+          <div id="klineChart" class="kline-chart"></div>
+          <div id="klineLoading" class="kline-loading" style="display:none;">加载中...</div>
+          <div id="klineError" class="kline-error" style="display:none;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 底部状态栏 -->
+  <footer class="status-bar">
+    <div class="container">
+      <div class="status-left">
+        <span id="apiStatus">API 状态: <span class="status-ok">就绪</span></span>
+        <span id="rateLimit">限流: --</span>
+        <span id="errorCode"></span>
+      </div>
+      <div class="status-right">
+        <button id="btnExportCSV" class="btn-secondary">📥 导出 CSV</button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- 管理自选弹窗 -->
+  <div id="watchlistModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>管理自选</h3>
+        <button class="modal-close" onclick="closeWatchlistModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-hint">从下方列表选择要添加的产品代码（已添加的会显示为灰色）</p>
+        <div id="candidateList" class="candidate-list">
+          <!-- 由 JS 渲染 -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeWatchlistModal()">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./config.js"></script>
+  <!-- Lightweight Charts 库 -->
+  <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
